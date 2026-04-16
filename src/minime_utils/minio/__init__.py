@@ -30,7 +30,7 @@ from .listing import (
     list_objects,
     object_exists,
 )
-from .readers import read_bytes, read_csv, read_json, read_text
+from .readers import read_bytes, read_csv, read_dataframe, read_json, read_text
 from .writers import write_bytes, write_csv, write_dataframe, write_json, write_text
 
 __all__ = [
@@ -50,6 +50,7 @@ __all__ = [
     "read_json",
     "read_text",
     "read_csv",
+    "read_dataframe",
     # writers
     "write_bytes",
     "write_json",

@@ -6,7 +6,13 @@ from unittest.mock import MagicMock, patch
 
 from botocore.exceptions import ClientError
 
-from minime_utils.minio.readers import read_bytes, read_csv, read_json, read_text
+from minime_utils.minio.readers import (
+    read_bytes,
+    read_csv,
+    read_dataframe,
+    read_json,
+    read_text,
+)
 from minime_utils.minio.exceptions import MinIOObjectNotFoundError, MinIOReadError
 
 
@@ -139,4 +145,50 @@ def test_read_csv_propagates_not_found(mock_build):
 
     with pytest.raises(MinIOObjectNotFoundError):
         read_csv(bucket="b", key="missing")
+
+
+# ---------------------------------------------------------------------------
+# read_dataframe
+# ---------------------------------------------------------------------------
+
+
+@patch("minime_utils.minio.readers.build_s3_client")
+def test_read_dataframe_returns_dataframe(mock_build):
+    csv_data = b"name,age\nAlice,30\nBob,25"
+    mock_build.return_value = _mock_client(csv_data)
+
+    dataframe = read_dataframe(bucket="b", key="k")
+
+    assert list(dataframe.columns) == ["name", "age"]
+    assert len(dataframe) == 2
+    assert dataframe.iloc[0].to_dict() == {"name": "Alice", "age": 30}
+
+
+@patch("minime_utils.minio.readers.build_s3_client")
+def test_read_dataframe_supports_read_csv_kwargs(mock_build):
+    csv_data = b"name,score\nAlice,10\nBob,20"
+    mock_build.return_value = _mock_client(csv_data)
+
+    dataframe = read_dataframe(bucket="b", key="k", dtype={"score": "string"})
+
+    assert str(dataframe.dtypes["score"]) == "string"
+
+
+@patch("minime_utils.minio.readers.build_s3_client")
+def test_read_dataframe_raises_read_error_on_invalid_csv(mock_build):
+    mock_build.return_value = _mock_client(b'name,score\n"Alice,10\nBob,20')
+
+    with pytest.raises(MinIOReadError):
+        read_dataframe(bucket="b", key="k")
+
+
+@patch("minime_utils.minio.readers.build_s3_client")
+def test_read_dataframe_propagates_not_found(mock_build):
+    client = MagicMock()
+    client.get_object.side_effect = _client_error("NoSuchKey")
+    mock_build.return_value = client
+
+    with pytest.raises(MinIOObjectNotFoundError):
+        read_dataframe(bucket="b", key="missing")
+
 

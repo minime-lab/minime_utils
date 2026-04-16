@@ -8,6 +8,7 @@ import json
 import logging
 from typing import Any
 
+import pandas as pd
 from botocore.exceptions import ClientError
 
 from .client import build_s3_client
@@ -133,4 +134,47 @@ def read_csv(
         raise
     except Exception as e:
         raise MinIOReadError(f"Failed to parse CSV from {bucket}/{key}: {e}") from e
+
+
+def read_dataframe(
+    *, bucket: str, key: str, encoding: str = "utf-8", **read_csv_kwargs: Any
+) -> pd.DataFrame:
+    """
+    Read CSV content from MinIO and parse it into a pandas DataFrame.
+
+    Args:
+        bucket: Bucket name.
+        key: Object key/path.
+        encoding: Text encoding for CSV content (default: utf-8).
+        **read_csv_kwargs: Extra arguments forwarded to pandas.read_csv.
+
+    Returns:
+        Parsed pandas DataFrame.
+
+    Raises:
+        MinIOObjectNotFoundError: If the object does not exist.
+        MinIOReadError: If read or CSV/DataFrame parsing fails.
+    """
+    logger.info("Reading DataFrame from MinIO: bucket=%s key=%s", bucket, key)
+
+    try:
+        payload = read_bytes(bucket=bucket, key=key)
+        dataframe = pd.read_csv(
+            io.BytesIO(payload), encoding=encoding, **read_csv_kwargs
+        )
+        logger.debug(
+            "Parsed DataFrame from %s/%s with rows=%d columns=%d",
+            bucket,
+            key,
+            len(dataframe),
+            len(dataframe.columns),
+        )
+        return dataframe
+    except (MinIOObjectNotFoundError, MinIOReadError):
+        raise
+    except Exception as e:
+        raise MinIOReadError(
+            f"Failed to parse DataFrame from CSV in {bucket}/{key}: {e}"
+        ) from e
+
 
