@@ -9,7 +9,9 @@ from minime_utils.minio.listing import (
     _normalize_prefix,
     delete_object,
     delete_prefix,
+    list_buckets,
     list_directories,
+    list_immediate_children,
     list_objects,
     object_exists,
 )
@@ -140,6 +142,41 @@ def test_list_directories_empty_returns_empty(mock_build):
     mock_build.return_value = client
 
     assert list_directories(bucket="b") == []
+
+
+@patch("minime_utils.minio.listing.build_s3_client")
+def test_list_immediate_children_returns_directories_and_files(mock_build):
+    client = MagicMock()
+    client.list_objects_v2.side_effect = [
+        _prefix_response(["logs/2025/", "logs/2026/"]),
+        _list_response(["logs/a.txt", "logs/z.txt"]),
+    ]
+    mock_build.return_value = client
+
+    directories, files = list_immediate_children(bucket="b", prefix="logs")
+
+    assert directories == ["logs/2025", "logs/2026"]
+    assert files == ["logs/a.txt", "logs/z.txt"]
+    assert client.list_objects_v2.call_count == 2
+
+
+@patch("minime_utils.minio.listing.build_s3_client")
+def test_list_buckets_returns_sorted_names(mock_build):
+    client = MagicMock()
+    client.list_buckets.return_value = {"Buckets": [{"Name": "zeta"}, {"Name": "alpha"}]}
+    mock_build.return_value = client
+
+    assert list_buckets() == ["alpha", "zeta"]
+
+
+@patch("minime_utils.minio.listing.build_s3_client")
+def test_list_buckets_raises_on_client_error(mock_build):
+    client = MagicMock()
+    client.list_buckets.side_effect = _client_error("AccessDenied")
+    mock_build.return_value = client
+
+    with pytest.raises(MinIOReadError):
+        list_buckets()
 
 
 # ---------------------------------------------------------------------------

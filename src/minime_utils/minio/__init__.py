@@ -26,7 +26,9 @@ from .exceptions import (
 from .listing import (
     delete_object,
     delete_prefix,
+    list_buckets,
     list_directories,
+    list_immediate_children,
     list_objects,
     object_exists,
 )
@@ -60,6 +62,8 @@ __all__ = [
     # listing
     "list_objects",
     "list_directories",
+    "list_immediate_children",
+    "list_buckets",
     "object_exists",
     "delete_object",
     "delete_prefix",

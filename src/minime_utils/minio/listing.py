@@ -123,6 +123,38 @@ def list_directories(*, bucket: str, prefix: str = "") -> list[str]:
         ) from e
 
 
+def list_immediate_children(
+    *, bucket: str, prefix: str = ""
+) -> tuple[list[str], list[str]]:
+    """Return immediate (directories, files) under bucket/prefix.
+
+    Directories are returned without trailing slash.
+    Files are object keys directly under the prefix.
+    """
+    normalized = _normalize_prefix(prefix) if prefix else ""
+    directories = list_directories(bucket=bucket, prefix=normalized)
+    files = [
+        key
+        for key in list_objects(bucket=bucket, prefix=normalized, recursive=False)
+        if not key.endswith("/")
+    ]
+    return sorted(directories), sorted(files)
+
+
+def list_buckets() -> list[str]:
+    """List available bucket names in MinIO."""
+    client = build_s3_client()
+    try:
+        response = client.list_buckets()
+        buckets = [
+            item["Name"] for item in response.get("Buckets", []) if item.get("Name")
+        ]
+        return sorted(buckets)
+    except ClientError as e:
+        err = e.response.get("Error", {})
+        raise MinIOReadError(f"MinIO list buckets error: code={err.get('Code')}") from e
+
+
 def object_exists(*, bucket: str, key: str) -> bool:
     """
     Check whether a specific object exists in MinIO.
