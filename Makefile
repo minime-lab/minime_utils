@@ -13,7 +13,7 @@ help:
 	@echo "  make sync                   - install dependencies with uv"
 	@echo "  make test                   - run pytest"
 	@echo "  make check                  - ruff format check + lint + tests"
-	@echo "  make release VERSION=1.2.6  - bump, tag, roll $(MAJOR_TAG), push"
+	@echo "  make release VERSION=1.2.6  - bump, tag, roll the floating vN tag, push"
 
 sync:
 	uv sync --group dev
