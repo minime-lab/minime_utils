@@ -136,3 +136,84 @@ dmypy.json
 .DS_Store
 Thumbs.db
 
+# ===== minime-lab universal .gitignore (managed) =====
+# --- IDE ---
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# --- Python cache / bytecode ---
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# --- Packaging / build ---
+*.egg-info/
+.eggs/
+build/
+dist/
+*.egg
+pip-wheel-metadata/
+wheels/
+sdist/
+
+# --- Virtual environments ---
+.venv/
+venv/
+env/
+ENV/
+
+# --- Tooling caches ---
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.hypothesis/
+.tox/
+.nox/
+.cache/
+
+# --- Local env / secrets ---
+.env
+.env.*
+*.local
+
+# --- Logs ---
+*.log
+*.log.*
+*.jsonl
+*.jsonl.*
+*.out
+*.err
+logs/
+**/logs/
+/tmp/
+
+# --- Datasets / data artifacts (never commit) ---
+*.csv
+*.tsv
+*.parquet
+*.feather
+*.arrow
+*.db
+*.sqlite
+*.sqlite3
+*.sqlite3-journal
+*.duckdb
+*.xlsx
+*.xls
+data/
+datasets/
+output/
+artifacts/
+**/data/
+.ipynb_checkpoints/
+
+# --- OS ---
+.DS_Store
+Thumbs.db
+
+# --- uv ---
+.uv/
