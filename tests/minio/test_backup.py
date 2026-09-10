@@ -406,3 +406,226 @@ def test_list_dated_folders_ignores_non_backup_subdirs():
     b = MinioBackup(client, "src", "k")
     dated = b._list_dated_folders("backups", "src/k/")
     assert dated == ["backup_20260909"]
+
+
+# ---------------------------------------------------------------------------
+# data-safety guards — pruning must NEVER delete anything outside
+# backups/<src-bucket>/<src-key>/backup_<yyyymmdd>/<...>
+# ---------------------------------------------------------------------------
+
+
+def test_prune_never_touches_source_bucket():
+    """The source bucket must not be listed or deleted by pruning."""
+    client = MagicMock()
+    folders = [f"src/data/backup_2026090{i}/" for i in range(2, 10)]
+    client.list_objects_v2.return_value = {
+        "Contents": [],
+        "CommonPrefixes": [],
+    }
+    client.get_paginator.side_effect = [
+        _make_paginator([_page(contents=[])]),  # copy
+        _make_paginator([_page(prefixes=folders)]),  # list_dated
+        # delete_folder: one object per deleted folder, all under backups/
+        _make_paginator([_page(contents=["backups/src/data/backup_20260902/x"])]),
+    ]
+
+    MinioBackup(
+        client, "src", "data", max_backups=7, clock=_fixed_clock(2026, 9, 10)
+    ).run()
+
+    # Source bucket must never be the target of a delete_objects call.
+    assert client.get_paginator.call_count == 3
+    assert client.delete_objects.call_count == 1
+    for call in client.delete_objects.call_args_list:
+        assert call.kwargs["Bucket"] == "backups"
+        for obj in call.kwargs["Delete"]["Objects"]:
+            assert obj["Key"].startswith("backups/")
+
+
+def test_prune_never_deletes_non_dated_folder():
+    """Even with stray non-dated folders, pruning must skip them."""
+    client = MagicMock()
+    # 8 dated folders (so max_backups=7 → exactly 1 prune happens) plus
+    # 3 non-dated folders that must NEVER be touched.
+    dated = [f"src/k/backup_2026090{i}/" for i in range(2, 10)]  # 8 dated
+    non_dated = [
+        "src/k/backup_NOTADATE/",
+        "src/k/backup_2026/",
+        "src/k/my_precious_data/",
+    ]
+    all_listed = dated + non_dated
+
+    client.list_objects_v2.return_value = {
+        "Contents": [],
+        "CommonPrefixes": [],
+    }
+    # Only the single oldest DATED folder (backup_20260902) has content.
+    # If pruning wrongly targeted the non-dated folders, this assertion
+    # would fail (no delete_objects call → call_count==0).
+    client.get_paginator.side_effect = [
+        _make_paginator([_page(contents=[])]),
+        _make_paginator([_page(prefixes=all_listed)]),
+        _make_paginator([_page(contents=["backups/src/k/backup_20260902/only_file"])]),
+    ]
+
+    result = MinioBackup(
+        client, "src", "k", max_backups=7, clock=_fixed_clock(2026, 9, 10)
+    ).run()
+
+    # Only the oldest DATED folder was deleted; the 3 non-dated must be
+    # left alone and never appear in the delete payload.
+    assert result.pruned_folders == ["backup_20260902"]
+    assert client.delete_objects.call_count == 1
+    deleted_keys = [
+        obj["Key"]
+        for call in client.delete_objects.call_args_list
+        for obj in call.kwargs["Delete"]["Objects"]
+    ]
+    assert deleted_keys == ["backups/src/k/backup_20260902/only_file"]
+    # And none of the non-dated prefixes appears as a directory anywhere
+    # in any deleted key. (Use '/' boundaries to avoid the regex pattern
+    # matching inside a legitimate dated folder name like backup_20260902
+    # which contains the substring "backup_2026".)
+    for nd in non_dated:
+        nd_path = nd.strip("/")  # e.g. "src/k/backup_NOTADATE"
+        for k in deleted_keys:
+            assert f"/{nd_path}/" not in k and not k.startswith(f"{nd_path}/"), (
+                f"non-dated folder {nd} touched by delete: {k}"
+            )
+
+
+def test_prune_never_deletes_today_folder():
+    """The folder we just created (today) must NEVER appear in pruned."""
+    client = MagicMock()
+    today = "src/k/backup_20260910/"
+    folders = [
+        "src/k/backup_20260901/",
+        "src/k/backup_20260905/",
+        today,
+        "src/k/backup_20260907/",
+        "src/k/backup_20260908/",
+        "src/k/backup_20260909/",
+    ]
+    client.list_objects_v2.return_value = {
+        "Contents": [],
+        "CommonPrefixes": [],
+    }
+    # 3 deletes (excess = 6 - 3 = 3): oldest non-today folders.
+    delete_paginators = [
+        _make_paginator([_page(contents=[f"backups/src/k/backup_2026090{i}/x"])])
+        for i in (1, 5, 7)
+    ]
+    client.get_paginator.side_effect = [
+        _make_paginator([_page(contents=[])]),
+        _make_paginator([_page(prefixes=folders)]),
+        *delete_paginators,
+    ]
+
+    result = MinioBackup(
+        client, "src", "k", max_backups=3, clock=_fixed_clock(2026, 9, 10)
+    ).run()
+
+    assert result.action == "created"
+    assert "backup_20260910" not in result.pruned_folders
+    assert client.delete_objects.call_count == 3
+
+
+def test_prune_count_never_exceeds_excess():
+    """delete_objects must be called exactly `excess` times, never more."""
+    client = MagicMock()
+    folders = [f"src/k/backup_202609{i:02d}/" for i in range(1, 16)]  # 15
+    client.list_objects_v2.return_value = {
+        "Contents": [],
+        "CommonPrefixes": [],
+    }
+    delete_paginators = [
+        _make_paginator([_page(contents=[f"backups/src/k/backup_2026090{i}/x"])])
+        for i in range(1, 9)  # 01..08
+    ]
+    client.get_paginator.side_effect = [
+        _make_paginator([_page(contents=[])]),
+        _make_paginator([_page(prefixes=folders)]),
+        *delete_paginators,
+    ]
+
+    result = MinioBackup(
+        client, "src", "k", max_backups=7, clock=_fixed_clock(2026, 9, 10)
+    ).run()
+
+    # Today is backup_20260910 → preserved. 8 oldest (01..08) deleted.
+    assert result.pruned_folders == [f"backup_2026090{i}" for i in range(1, 9)]
+    assert client.delete_objects.call_count == 8
+
+
+def test_prune_delete_prefix_is_always_under_parent():
+    """Every delete_objects call must target backups/<src>/<key>/ only."""
+    client = MagicMock()
+    folders = [
+        "src/data/backup_20260908/",
+        "src/data/backup_20260909/",
+        "src/data/backup_20260910/",
+    ]
+    client.list_objects_v2.return_value = {
+        "Contents": [],
+        "CommonPrefixes": [],
+    }
+    client.get_paginator.side_effect = [
+        _make_paginator([_page(contents=[])]),
+        _make_paginator([_page(prefixes=folders)]),
+        # The oldest (backup_20260908) has a file inside.
+        _make_paginator(
+            [_page(contents=["backups/src/data/backup_20260908/old.json"])]
+        ),
+    ]
+
+    MinioBackup(
+        client, "src", "data", max_backups=2, clock=_fixed_clock(2026, 9, 11)
+    ).run()
+
+    delete_calls = client.delete_objects.call_args_list
+    assert len(delete_calls) == 1
+    bucket = delete_calls[0].kwargs["Bucket"]
+    keys = [obj["Key"] for obj in delete_calls[0].kwargs["Delete"]["Objects"]]
+    assert bucket == "backups"
+    for k in keys:
+        assert k.startswith("backups/src/data/"), (
+            f"deleting outside backups/<src>/<key>/: {k}"
+        )
+
+
+def test_run_with_max_backups_one_keeps_only_today():
+    """max_backups=1 must leave exactly one folder (today) afterwards."""
+    client = MagicMock()
+    folders = [
+        "src/k/backup_20260901/",
+        "src/k/backup_20260905/",
+        "src/k/backup_20260908/",
+        "src/k/backup_20260909/",
+        "src/k/backup_20260910/",  # today
+    ]
+    client.list_objects_v2.return_value = {
+        "Contents": [],
+        "CommonPrefixes": [],
+    }
+    delete_paginators = [
+        _make_paginator([_page(contents=[f"backups/src/k/backup_202609{i:02d}/x"])])
+        for i in (1, 5, 8, 9)
+    ]
+    client.get_paginator.side_effect = [
+        _make_paginator([_page(contents=[])]),
+        _make_paginator([_page(prefixes=folders)]),
+        *delete_paginators,
+    ]
+
+    result = MinioBackup(
+        client, "src", "k", max_backups=1, clock=_fixed_clock(2026, 9, 10)
+    ).run()
+
+    assert result.action == "created"
+    assert result.pruned_folders == [
+        "backup_20260901",
+        "backup_20260905",
+        "backup_20260908",
+        "backup_20260909",
+    ]
+    assert client.delete_objects.call_count == 4
