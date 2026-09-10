@@ -23,6 +23,7 @@ from .exceptions import (
     MinIOReadError,
     MinIOWriteError,
 )
+from .backup import BackupResult, MinioBackup
 from .listing import (
     delete_object,
     delete_prefix,
@@ -49,14 +50,14 @@ __all__ = [
     "MinIOWriteError",
     # readers
     "read_bytes",
-    "read_json",
     "read_text",
+    "read_json",
     "read_csv",
     "read_dataframe",
     # writers
     "write_bytes",
-    "write_json",
     "write_text",
+    "write_json",
     "write_csv",
     "write_dataframe",
     # listing
@@ -67,5 +68,7 @@ __all__ = [
     "object_exists",
     "delete_object",
     "delete_prefix",
+    # backup
+    "MinioBackup",
+    "BackupResult",
 ]
-
