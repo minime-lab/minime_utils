@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "minime-utils"
 version = "1.1.0"
-description = "Shared utilities for minime homeserver (Minio access, logging, settings, etc.)"
+description = "Shared utilities for minime home server (Minio access, logging, settings, etc.)"
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
