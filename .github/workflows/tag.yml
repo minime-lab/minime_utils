@@ -1,0 +1,19 @@
+name: Tag new versions
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  tag:
+    runs-on: [self-hosted, Linux, X64]
+
+    steps:
+      - name: Tag new versions
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: /srv/control/app_control/bin/autotag_version "${GITHUB_REPOSITORY##*/}"
