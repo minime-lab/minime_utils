@@ -24,6 +24,7 @@ include = ["minime_utils*"]
 
 [dependency-groups]
 dev = [
+    "pre-commit>=4.6.2",
     "pytest>=9.0.2",
     "ruff",
 ]

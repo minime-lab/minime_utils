@@ -13,6 +13,7 @@ ensure-uv:
 	uv --version
 
 init: ensure-uv
+	uv run pre-commit install
 	uv python install $(PYTHON_VERSION)
 	uv sync
 
