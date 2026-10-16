@@ -79,4 +79,3 @@ def build_s3_client() -> Any:
         return client
     except BotoCoreError as e:
         raise MinIOConnectionError(f"Failed to create MinIO S3 client: {e}") from e
-

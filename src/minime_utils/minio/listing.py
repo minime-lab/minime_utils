@@ -19,9 +19,7 @@ def _normalize_prefix(prefix: str) -> str:
     return f"{cleaned}/" if cleaned else ""
 
 
-def list_objects(
-    *, bucket: str, prefix: str = "", recursive: bool = True
-) -> list[str]:
+def list_objects(*, bucket: str, prefix: str = "", recursive: bool = True) -> list[str]:
     """
     List all object keys in a bucket under a given prefix.
 
@@ -250,4 +248,3 @@ def delete_prefix(*, bucket: str, prefix: str) -> int:
 
     logger.debug("Deleted %d objects from %s/%s", deleted, bucket, prefix)
     return deleted
-

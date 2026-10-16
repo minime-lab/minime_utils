@@ -149,7 +149,11 @@ def write_csv(
     if not rows:
         logger.warning("Writing empty CSV to %s/%s", bucket, key)
         write_text(
-            bucket=bucket, key=key, data="", encoding=encoding, content_type=content_type
+            bucket=bucket,
+            key=key,
+            data="",
+            encoding=encoding,
+            content_type=content_type,
         )
         return
 
@@ -168,9 +172,7 @@ def write_csv(
     except MinIOWriteError:
         raise
     except Exception as e:
-        raise MinIOWriteError(
-            f"Failed to serialize CSV for {bucket}/{key}: {e}"
-        ) from e
+        raise MinIOWriteError(f"Failed to serialize CSV for {bucket}/{key}: {e}") from e
 
 
 def write_dataframe(
@@ -218,4 +220,3 @@ def write_dataframe(
         raise MinIOWriteError(
             f"Failed to serialize DataFrame for {bucket}/{key}: {e}"
         ) from e
-

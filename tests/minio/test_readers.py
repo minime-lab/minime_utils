@@ -190,5 +190,3 @@ def test_read_dataframe_propagates_not_found(mock_build):
 
     with pytest.raises(MinIOObjectNotFoundError):
         read_dataframe(bucket="b", key="missing")
-
-

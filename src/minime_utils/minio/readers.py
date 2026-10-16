@@ -176,5 +176,3 @@ def read_dataframe(
         raise MinIOReadError(
             f"Failed to parse DataFrame from CSV in {bucket}/{key}: {e}"
         ) from e
-
-

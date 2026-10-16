@@ -182,4 +182,3 @@ def test_write_dataframe_excludes_index_by_default(mock_build):
     body = _put_kwargs(client)["Body"].decode("utf-8")
     # default pandas index would be 0,1 — should not appear as a column
     assert body.startswith("val")
-

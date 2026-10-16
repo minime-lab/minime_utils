@@ -84,7 +84,11 @@ def test_list_objects_returns_sorted_keys(mock_build):
 def test_list_objects_handles_pagination(mock_build):
     client = MagicMock()
     client.list_objects_v2.side_effect = [
-        {**_list_response(["a.txt"]), "IsTruncated": True, "NextContinuationToken": "tok1"},
+        {
+            **_list_response(["a.txt"]),
+            "IsTruncated": True,
+            "NextContinuationToken": "tok1",
+        },
         _list_response(["b.txt"]),
     ]
     mock_build.return_value = client
@@ -122,9 +126,7 @@ def test_list_objects_raises_read_error_on_client_error(mock_build):
 @patch("minime_utils.minio.listing.build_s3_client")
 def test_list_directories_returns_stripped_prefixes(mock_build):
     client = MagicMock()
-    client.list_objects_v2.return_value = _prefix_response(
-        ["logs/2025/", "logs/2026/"]
-    )
+    client.list_objects_v2.return_value = _prefix_response(["logs/2025/", "logs/2026/"])
     mock_build.return_value = client
 
     result = list_directories(bucket="b", prefix="logs")
@@ -163,7 +165,9 @@ def test_list_immediate_children_returns_directories_and_files(mock_build):
 @patch("minime_utils.minio.listing.build_s3_client")
 def test_list_buckets_returns_sorted_names(mock_build):
     client = MagicMock()
-    client.list_buckets.return_value = {"Buckets": [{"Name": "zeta"}, {"Name": "alpha"}]}
+    client.list_buckets.return_value = {
+        "Buckets": [{"Name": "zeta"}, {"Name": "alpha"}]
+    }
     mock_build.return_value = client
 
     assert list_buckets() == ["alpha", "zeta"]
@@ -266,4 +270,3 @@ def test_delete_prefix_empty_prefix_returns_zero(mock_build):
 
     assert delete_prefix(bucket="b", prefix="empty") == 0
     client.delete_objects.assert_not_called()
-

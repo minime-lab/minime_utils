@@ -96,4 +96,3 @@ def test_build_s3_client_raises_when_credentials_missing(monkeypatch):
 
     with pytest.raises(MinIOCredentialError):
         build_s3_client()
-

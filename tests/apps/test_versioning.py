@@ -40,4 +40,3 @@ def test_resolve_app_version_returns_dev_when_unavailable(tmp_path, monkeypatch)
     monkeypatch.setattr(importlib.metadata, "version", _raise_missing)
 
     assert resolve_app_version("demo-app", module_file=module_file) == "dev"
-

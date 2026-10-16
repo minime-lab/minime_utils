@@ -18,10 +18,11 @@ def resolve_app_version(
         if module_file is None:
             return "dev"
 
-        pyproject_path = Path(module_file).resolve().parents[pyproject_parents] / "pyproject.toml"
+        pyproject_path = (
+            Path(module_file).resolve().parents[pyproject_parents] / "pyproject.toml"
+        )
         try:
             with pyproject_path.open("rb") as f:
                 return str(tomllib.load(f).get("project", {}).get("version", "dev"))
         except (OSError, tomllib.TOMLDecodeError):
             return "dev"
-

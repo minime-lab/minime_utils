@@ -27,4 +27,3 @@ class MinIOReadError(MinIOError):
 
 class MinIOWriteError(MinIOError):
     """Raised when a write operation fails."""
-
