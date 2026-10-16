@@ -7,14 +7,16 @@ Current scope focuses on a reusable MinIO/S3-compatible toolkit used by apps and
 ## App configuration
 
 Apps and DAGs can load their repository-root `settings.toml` through the shared
-loader. Pass the calling module's `__file__`; the loader finds the nearest
-parent containing `pyproject.toml`. If the module is installed in
-`site-packages`, it also searches upward from the current working directory.
+loader. `find_project_root` uses the same discovery rule for other project-root
+files such as `.env`. Pass the calling module's `__file__`; discovery searches
+upward from that module for `pyproject.toml`. If the module is installed in
+`site-packages`, it searches upward from the current working directory instead.
 
 ```python
-from minime_utils.apps import load_settings
+from minime_utils.apps import find_project_root, load_settings
 
 settings = load_settings(__file__)
+dotenv_path = find_project_root(__file__) / ".env"
 ```
 
 ## What the package can do right now
