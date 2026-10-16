@@ -76,9 +76,7 @@ def test_load_dotenv_uses_source_module_project_root(tmp_path, monkeypatch):
     module_file.parent.mkdir(parents=True)
     module_file.touch()
     (project_root / "pyproject.toml").touch()
-    (project_root / ".env").write_text(
-        "MINIME_TEST_SOURCE=loaded\n", encoding="utf-8"
-    )
+    (project_root / ".env").write_text("MINIME_TEST_SOURCE=loaded\n", encoding="utf-8")
     monkeypatch.delenv("MINIME_TEST_SOURCE", raising=False)
 
     assert load_dotenv(module_file)

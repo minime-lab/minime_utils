@@ -1,7 +1,7 @@
 """Tests for minime_utils.minio.listing."""
 
 import pytest
-from unittest.mock import MagicMock, call, patch
+from unittest.mock import MagicMock, patch
 
 from botocore.exceptions import ClientError
 
