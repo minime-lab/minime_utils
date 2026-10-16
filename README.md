@@ -4,6 +4,19 @@ Shared utilities package for the minime homeserver ecosystem.
 
 Current scope focuses on a reusable MinIO/S3-compatible toolkit used by apps and DAGs.
 
+## App configuration
+
+Apps and DAGs can load their repository-root `settings.toml` through the shared
+loader. Pass the calling module's `__file__`; the loader finds the nearest
+parent containing `pyproject.toml`. If the module is installed in
+`site-packages`, it also searches upward from the current working directory.
+
+```python
+from minime_utils.apps import load_settings
+
+settings = load_settings(__file__)
+```
+
 ## What the package can do right now
 
 ### MinIO client and credential handling
