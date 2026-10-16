@@ -13,11 +13,15 @@ upward from that module for `pyproject.toml`. If the module is installed in
 `site-packages`, it searches upward from the current working directory instead.
 
 ```python
-from minime_utils.apps import find_project_root, load_settings
+from minime_utils.apps import load_dotenv, load_settings
 
 settings = load_settings(__file__)
-dotenv_path = find_project_root(__file__) / ".env"
+load_dotenv(__file__)
 ```
+
+`load_dotenv` finds `.env` at the same project root used by `load_settings`.
+For installed applications, it searches from the working directory. Set
+`required=True` to raise `FileNotFoundError` when the file is missing.
 
 ## What the package can do right now
 
