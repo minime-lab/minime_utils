@@ -1,6 +1,6 @@
 """Tests for Gmail SMTP email sending."""
 
-from email import message_from_bytes
+from email import message_from_bytes, policy
 import smtplib
 from unittest.mock import MagicMock, patch
 
@@ -50,7 +50,10 @@ def test_send_email_uses_gmail_ssl_and_sends_plain_text():
     assert sent["Subject"] == "Alert title"
     assert sent["From"] == "alerts@gmail.com"
     assert sent["To"] == "me@example.com"
-    assert message_from_bytes(sent.as_bytes()).get_content().strip() == "Alert body"
+    assert (
+        message_from_bytes(sent.as_bytes(), policy=policy.default).get_content().strip()
+        == "Alert body"
+    )
 
 
 def test_send_email_propagates_smtp_errors():
