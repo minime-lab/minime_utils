@@ -23,6 +23,22 @@ load_dotenv(__file__)
 For installed applications, it searches from the working directory. Set
 `required=True` to raise `FileNotFoundError` when the file is missing.
 
+## Email alerts
+
+`EmailClient` sends plain-text email through Gmail SMTP over implicit TLS on
+port 465. Configure `GMAIL_ADDRESS` and `GMAIL_APP_PASSWORD`; the latter should
+be a Google app password, not the account's regular password. App passwords
+require 2-Step Verification on the Google account.
+
+```python
+from minime_utils.email import EmailClient
+
+email_client = EmailClient.from_env()
+email_client.send_email("Alert title", "Alert details", "you@example.com")
+```
+
+SMTP and authentication errors propagate to the caller.
+
 ## What the package can do right now
 
 ### MinIO client and credential handling
