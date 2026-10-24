@@ -137,3 +137,29 @@ uv run pytest -q
 ```bash
 uv run ruff check .
 ```
+
+## DAG job failure notifications
+
+`minime_utils.dag_utils.notify_failure` sends a job failure email without an
+Airflow dependency. Call it in the operator job's existing error handler:
+
+```python
+from minime_utils.dag_utils import notify_failure
+
+try:
+    run_job()
+except Exception:
+    notify_failure("validate_creds", "my_dag.main", run_id, 1)
+    return 1
+```
+
+The email includes the DAG/job name, run ID, exit code, and active exception
+traceback. For failures without an exception, supply `error_message` explicitly.
+Configure `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, and `DAG_FAILURE_EMAIL` in the
+job container environment. Email delivery failures are logged and suppressed so
+callers retain the original job failure. Retry policy remains with the caller.
+
+Release this library before migrating consumers. In each DAG repository, run
+`uv lock --upgrade-package minime-utils` after the 1.5.0 release updates the
+rolling `1` ref, then rebuild its task image. Old frozen lockfiles will not
+contain the new module.
