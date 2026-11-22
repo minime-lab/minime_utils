@@ -93,6 +93,30 @@ def test_flush_uploads_local_segment_and_removes_it(logger_factory) -> None:
     logger.close()
 
 
+def test_each_flush_uses_unique_date_and_uuid_object_key(logger_factory) -> None:
+    create, uploads = logger_factory
+    logger = create()
+    try:
+        logger.logger.info("first segment")
+        first_key = logger.flush()[0]
+        logger.logger.info("second segment")
+        second_key = logger.flush()[0]
+
+        assert first_key != second_key
+        for key in (first_key, second_key):
+            date_stamp, filename = key.rsplit("/", 2)[-2:]
+            date_parts = date_stamp.split("-")
+            assert len(date_parts) == 3
+            assert all(part.isdigit() for part in date_parts)
+            assert filename.startswith("logs_")
+            assert filename.endswith(".jsonl")
+            run_uuid = filename.removeprefix("logs_").removesuffix(".jsonl")
+            assert len(run_uuid) == 8
+        assert len(uploads) == 2
+    finally:
+        logger.close()
+
+
 def test_full_file_rotation_and_upload(logger_factory) -> None:
     create, uploads = logger_factory
     logger = create(max_bytes=1, backup_count=3)

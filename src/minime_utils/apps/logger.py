@@ -7,6 +7,8 @@ import logging
 import logging.handlers
 import queue
 import threading
+import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -158,7 +160,13 @@ class MinimeLogger:
             for path in sorted(self.logs_path.glob(f"{self.name}.jsonl.*")):
                 if not path.is_file():
                     continue
-                key = "/".join(part for part in (self.minio_prefix, path.name) if part)
+                date_stamp = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+                object_name = f"logs_{uuid.uuid4().hex[:8]}.jsonl"
+                key = "/".join(
+                    part
+                    for part in (self.minio_prefix, date_stamp, object_name)
+                    if part
+                )
                 try:
                     write_bytes(
                         bucket=self.minio_bucket,
