@@ -4,25 +4,7 @@ import tomllib
 from pathlib import Path
 from typing import Any
 
-
-def find_project_root(module_file: str | Path) -> Path:
-    """Find the project root for a source module or installed application.
-
-    Source modules are resolved from their file path. If the module lives in
-    site-packages, the current working directory is searched as the deployment
-    project root.
-    """
-    module_path = Path(module_file).expanduser().resolve()
-    starts = (module_path.parent, Path.cwd())
-
-    for start in starts:
-        for candidate in (start, *start.parents):
-            if (candidate / "pyproject.toml").is_file():
-                return candidate
-
-    raise FileNotFoundError(
-        f"Could not find project root (pyproject.toml) from {module_path} or {Path.cwd()}"
-    )
+from .paths import LocalPathResolver
 
 
 def resolve_settings_path(
@@ -32,7 +14,9 @@ def resolve_settings_path(
     return (
         Path(settings_path).expanduser().resolve()
         if settings_path is not None
-        else find_project_root(module_file) / "settings.toml"
+        else LocalPathResolver.from_module(module_file).add_relative_file(
+            "settings", "settings.toml"
+        )
     )
 
 
