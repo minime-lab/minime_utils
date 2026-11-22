@@ -2,8 +2,14 @@
 
 from .dotenv import load_dotenv
 from .logger import MinimeLogger
-from .paths import LocalPathResolver, MinioPath, MinioPathResolver, PathCollection
-from .settings import find_project_root, load_settings, resolve_settings_path
+from .paths import (
+    LocalPathResolver,
+    MinioPath,
+    MinioPathResolver,
+    PathCollection,
+    find_project_root,
+)
+from .settings import load_settings, resolve_settings_path
 from .versioning import resolve_app_version
 
 __all__ = [

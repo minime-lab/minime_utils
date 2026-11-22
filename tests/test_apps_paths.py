@@ -11,12 +11,7 @@ from minime_utils.apps.paths import (
     PathCollection,
     find_project_root,
 )
-from minime_utils.apps.settings import find_project_root as settings_find_project_root
 from minime_utils.apps.settings import resolve_settings_path
-
-
-def test_settings_and_paths_export_same_project_root_function() -> None:
-    assert settings_find_project_root is find_project_root
 
 
 def test_find_project_root_walks_up_from_module_file(tmp_path: Path) -> None:

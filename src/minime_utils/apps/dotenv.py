@@ -4,7 +4,7 @@ from pathlib import Path
 
 from dotenv import load_dotenv as _load_dotenv
 
-from .settings import find_project_root
+from .paths import find_project_root
 
 
 def load_dotenv(
