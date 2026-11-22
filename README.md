@@ -23,6 +23,94 @@ load_dotenv(__file__)
 For installed applications, it searches from the working directory. Set
 `required=True` to raise `FileNotFoundError` when the file is missing.
 
+### Local and MinIO paths
+
+Use `LocalPathResolver` to discover the project root and register commonly used
+local paths. `PathCollection` exposes registered names as attributes or mapping
+keys. The resolver only constructs paths; it does not create files or
+directories.
+
+```python
+from minime_utils.apps import LocalPathResolver
+
+local = LocalPathResolver.from_module(__file__)
+settings_path = local.add_relative_file("settings", "settings.toml")
+logs_dir = local.add_relative_path("logs", "logs")
+
+print(local.paths.settings)
+print(local.paths["logs"])
+```
+
+`find_project_root` is available from both `minime_utils.apps.paths` and
+`minime_utils.apps.settings` for compatibility. Both names refer to the same
+function.
+
+Use `MinioPathResolver` to construct object keys under an app-specific bucket
+and prefix. MinIO paths are represented by `MinioPath(bucket, key)`; they are
+not local filesystem paths and do not create MinIO objects.
+
+```python
+from minime_utils.apps import MinioPathResolver
+
+remote = MinioPathResolver("minime-lab", "apps/my_app")
+remote.add_relative_path("logs", "logs")
+print(remote.paths.logs)  # MinioPath(bucket="minime-lab", key="apps/my_app/logs")
+```
+
+### Queue-backed MinimeLogger
+
+`MinimeLogger` writes JSON Lines records through a bounded logging queue to a
+local rotating file. `flush()` waits for queued records, closes the active
+segment, and uploads closed segments using the MinIO writer. Successful uploads
+are removed locally; failed uploads are retained for retry. The MinIO bucket
+and prefix are passed at setup. MinIO credentials come from
+`MINIO_ENDPOINT`, `MINIO_ACCESS_KEY`, and `MINIO_SECRET_KEY`.
+
+The logger accepts a settings dictionary, either the full `load_settings()`
+result containing a `[logging]` section or the logging mapping itself. Missing
+values default to `logs`, 10 MiB per file, three backups, a 10,000-record queue,
+and `INFO` level. Relative log paths resolve under `project_root`, or the
+current working directory if no root is supplied.
+
+```toml
+[logging]
+logs_path = "logs"
+max_bytes = 10485760
+backup_count = 3
+queue_size = 10000
+level = "INFO"
+minio_bucket = "minime-lab"
+minio_prefix = "apps/my_app/logs"
+```
+
+```python
+from minime_utils.apps import LocalPathResolver, MinimeLogger, load_settings
+
+local = LocalPathResolver.from_module(__file__)
+settings = load_settings(__file__)
+logging_config = settings["logging"]
+logger = MinimeLogger.from_config(
+    settings,
+    name="my_app",
+    minio_bucket=logging_config["minio_bucket"],
+    minio_prefix=logging_config["minio_prefix"],
+    project_root=local.root,
+)
+
+logger.logger.info("App started")
+# Call after a request or DAG task when its records should be uploaded.
+logger.flush()
+# Close once at process shutdown to flush and stop the queue listener.
+logger.close()
+```
+
+For a web app, call `flush()` after each request if logs should be uploaded
+promptly, and call `close()` during application shutdown. If MinIO is
+unavailable, flush leaves failed segments on local disk; retry with a later
+flush. Keep a logger instance scoped to the process when a shared app logger is
+desired; a flush uploads all queued records for that logger, not only records
+from the current request.
+
 ## Email alerts
 
 `EmailClient` sends plain-text email through Gmail SMTP over implicit TLS on
@@ -159,7 +247,7 @@ Configure `GMAIL_ADDRESS`, `GMAIL_APP_PASSWORD`, and `DAG_FAILURE_EMAIL` in the
 job container environment. Email delivery failures are logged and suppressed so
 callers retain the original job failure. Retry policy remains with the caller.
 
-Release this library before migrating consumers. In each DAG repository, run
-`uv lock --upgrade-package minime-utils` after the 1.5.0 release updates the
-rolling `1` ref, then rebuild its task image. Old frozen lockfiles will not
-contain the new module.
+Release this library before migrating consumers. After publishing the desired
+version/tag, run `uv lock --upgrade-package minime-utils` in each consumer
+repository and rebuild its app or task image. Old frozen lockfiles will not
+contain newly added modules.
