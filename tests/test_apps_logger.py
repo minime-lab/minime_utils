@@ -97,6 +97,7 @@ def test_full_file_rotation_and_upload(logger_factory) -> None:
     create, uploads = logger_factory
     logger = create(max_bytes=1, backup_count=3)
     logger.logger.warning("large enough to rotate")
+    logger.logger.warning("second record triggers rotation")
     logger._queue.join()
 
     assert list(logger.logs_path.glob(f"{logger.name}.jsonl.*"))

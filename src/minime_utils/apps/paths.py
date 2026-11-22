@@ -95,7 +95,10 @@ class MinioPathResolver:
     def add_relative_file(
         self, name: str, relative_file: str | PurePosixPath
     ) -> MinioPath:
-        relative_key = _normalize_minio_key(str(relative_file))
+        raw_key = str(relative_file).replace("\\", "/")
+        if raw_key.startswith("/"):
+            raise ValueError("Expected a non-empty key relative to the MinIO root")
+        relative_key = _normalize_minio_key(raw_key)
         if (
             not relative_key
             or relative_key.startswith("/")
